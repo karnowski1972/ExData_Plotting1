@@ -383,8 +383,11 @@ dev.off()
 <pre><code class="r">png(filename = &quot;plot4.png&quot;, width = 480, height = 480)
 par(mfrow = c(2, 2))
 # Plot 1 of 4
-with(data, hist(Global_active_power, col = &quot;red&quot;, main = &quot;Global Active Power&quot;, 
-    xlab = &quot;Global Active Power&quot;))
+with(data, {
+    plot(datetime, Global_active_power, type = &quot;n&quot;, ylab = &quot;Global Active Power&quot;, 
+        xlab = &quot;&quot;)
+    lines(datetime, Global_active_power)
+})
 # Plot 2 of 4
 with(data, {
     plot(datetime, Voltage, type = &quot;n&quot;)
@@ -397,8 +400,8 @@ with(data, {
     lines(datetime, Sub_metering_1, col = &quot;black&quot;)
     lines(datetime, Sub_metering_2, col = &quot;red&quot;)
     lines(datetime, Sub_metering_3, col = &quot;blue&quot;)
-    legend(&quot;topright&quot;, names(data)[7:9], lty = &quot;solid&quot;, col = c(&quot;black&quot;, &quot;red&quot;, 
-        &quot;blue&quot;))
+    legend(&quot;topright&quot;, names(data)[7:9], bty = &quot;n&quot;, cex = 0.9, lty = &quot;solid&quot;, 
+        col = c(&quot;black&quot;, &quot;red&quot;, &quot;blue&quot;))
 })
 # Plot 4 of 4
 with(data, {
