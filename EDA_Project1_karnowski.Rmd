@@ -53,24 +53,119 @@ When you are finished with the assignment, push your git repository to GitHub so
 
 The four plots that you will need to construct are shown below.
 
-Plot 1
+### Issue
+Original had the plan to read data in by fread with na.strings="?" But this is not working. Workaround see below from Forum
+
+Due to bug #2660 in fread, when non-numeric character is found during scanning step, the type is rolled back to the character, with a huge warning message, despite the fact that na.string is properly registered (see also http://stackoverflow.com/questions/15784138/bad-interpretation-of-n-a-using-fread)
+
+The only way I could work around this is by creating my own class and setAs method which handles NA case for me.
+extractData2 <- function(file) {
+  cols <- rep("NULL",9)
+  setClass("mynumeric")
+  setAs("character","mynumeric", function(from) if (from=='?') NA else as.numeric(from))
+  cols[1:2] <- "character"
+  cols[3] <- "mynumeric"
+  data <- fread(file, colClasses=cols, select=c(1:3), sep=';', header=T, na.strings=c("?"))
+  # [agr] take the data within the relevant timeframe, add datetime column
+  datawant <- data[data$Date %in% c("1/1/2007","1/2/2007")]
+  datawant[, datetime := as.POSIXct(paste(datawant$Date, datawant$Time), format="%d/%m/%Y %H:%M:%S")]
+  # [agr] drop not needed columns
+  datawant[, c("Date","Time") := NULL]
+}
+
+
+
+###Read data
 
 ```{r}
 setwd("~/R/Explore_DA/Project1/ExData_Plotting1")
 library(data.table)
+
+fileurl <- "https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2Fhousehold_power_consumption.zip"
+zipname <- "./data/household_power_consumption.zip"
+filename <- ("./data/household_power_consumption.txt")
+
+#Get data
 if (!file.exists("data")) {
         dir.create("data")
         }
-filename <- ("./data/household_power_consumption.txt")
-data <-data.table(fread(filename,header = TRUE, na.strings="?", select = 1, ))
-d <- as.Date(c, "%d/%m/%Y")
-strptime(c, "%H:%M:%S")
-as.Date(c,"%H:%M:%S")
+if (!file.exists(zipname)){
+        download.file(fileurl, destfile=zipname, mode="wb")
+        unzip(zipname, exdir="./data")
+        dateDownloaded <- date()
+        write(dateDownloaded, file = paste("./data/datedownloaded.txt"))
+}
+
+
+#Load Data
+findRows<-fread(filename , header = TRUE, select = 1) # reads date column into vector findRows
+all<-(which(findRows$Date %in% c("1/2/2007", "2/2/2007")) ) # vector all contains row numbers with Date equal to "1/2/2007", "2/2/2007" 
+## This selective loading of rows is only working if dates are ordered sequentially
+skipLines<- min(all)-1 #numbers of rows to skip
+keepRows<- length(all) #numbers of rows to load
+data<- fread(filename, skip = (skipLines) , nrows = keepRows, header = TRUE)# unfortunately na.strings= "?" does not work and everything is converted to characters
+rm(findRows)
+# need to give column the original names
+febNames<- names(fread(filename, nrow = 1))
+setnames(data, febNames)
+# create new column with POSIXct time of character value Date and Time
+# strptime or date was not as usefull as I thought
+data[,datetime:= as.POSIXct(paste (Date,Time), format="%d/%m/%Y %H:%M:%S")]
 ```
 
-You can also embed plots, for example:
+### Plot 1
 
-```{r fig.width=7, fig.height=6}
-plot(cars)
+```{r fig.width=6, fig.height=6}
+png (filename="plot1.png", width=480, height=480)
+with (data, hist(Global_active_power, col="red", main="Global Active Power", xlab="Global Active Power (kilowatts)"))
+dev.off()
 ```
 
+### Plot 2
+```{r fig.width=6, fig.height=6}
+png (filename="plot2.png", width=480, height=480)
+with (data, {plot (datetime,Global_active_power, type = "n", ylab="Global Active Power (kilowatts)", xlab="")
+             lines (datetime,Global_active_power)
+             })
+
+dev.off()
+```
+
+### Plot 3
+
+```{r fig.width=6, fig.height=6}
+png (filename="plot3.png", width=480, height=480)
+with (data, {plot (datetime,Sub_metering_1, type = "n", ylab="Energy sub metering", xlab="")
+              lines (datetime,Sub_metering_1, col="black")
+              lines (datetime,Sub_metering_2, col="red")
+              lines (datetime,Sub_metering_3, col="blue")
+              legend("topright",names(data)[7:9], lty="solid", col=c("black", "red", "blue"))
+              })
+dev.off()
+```
+
+### Plot 4
+```{r fig.width=6, fig.height=6}
+png (filename="plot4.png", width=480, height=480)
+par(mfrow=c(2,2))
+# Plot 1 of 4
+with (data, {plot (datetime,Global_active_power, type = "n", ylab="Global Active Power", xlab="")
+             lines (datetime,Global_active_power)
+             })
+# Plot 2 of 4
+with (data, {plot (datetime,Voltage, type = "n")
+             lines (datetime,Voltage)
+             })
+# Plot 3 of 4
+with (data, {plot (datetime,Sub_metering_1, type = "n", ylab="Energy sub metering", xlab="")
+              lines (datetime,Sub_metering_1, col="black")
+              lines (datetime,Sub_metering_2, col="red")
+              lines (datetime,Sub_metering_3, col="blue")
+              legend("topright",names(data)[7:9],bty="n",cex=0.9, lty="solid", col=c("black", "red", "blue"))
+              })
+# Plot 4 of 4
+with (data, {plot (datetime,Global_reactive_power, type = "n")
+             lines(datetime,Global_reactive_power)
+             })
+dev.off()
+```

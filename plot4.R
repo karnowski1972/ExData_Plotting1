@@ -37,7 +37,9 @@ data[,datetime:= as.POSIXct(paste (Date,Time), format="%d/%m/%Y %H:%M:%S")]
 png (filename="plot4.png", width=480, height=480)
 par(mfrow=c(2,2))
 # Subplot 1 of 4
-with (data, hist(Global_active_power, main=NULL, col="red",ylab="Global Avtive Power",xlab=NULL))
+with (data, {plot (datetime,Global_active_power, type = "n", ylab="Global Active Power", xlab="")
+             lines (datetime,Global_active_power)
+})
 # Subplot 2 of 4
 with (data, {plot (datetime,Voltage, type = "n")
              lines (datetime,Voltage)
